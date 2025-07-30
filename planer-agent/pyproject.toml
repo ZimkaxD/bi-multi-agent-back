@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "planer-agent"
+version = "0.1.0"
+description = "Proxy для YandexGPT"
+authors = ["nikita.veretinprogr@gmailc.com"]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+requests = "^2.31"
+flask = "^3.1"
+flask-cors = "^3.0"
+python-dotenv = "^1.1.1"
+
+[tool.poetry.scripts]
+llm-client = "palner-agent:app"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

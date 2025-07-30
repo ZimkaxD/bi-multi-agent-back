@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "gateway"
+version = "0.1.0"
+description = "API для фронта, координирует остальные сервисы"
+authors = ["nikita.veretinprogr@gmail.com"]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+flask = "^3.1"
+flask-cors = "^3.0"
+requests = "^2.31"
+python-dotenv = "^1.1.1"
+psycopg2-binary = "^2.9"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

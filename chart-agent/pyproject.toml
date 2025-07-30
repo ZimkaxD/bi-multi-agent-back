@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "chart-agent"
+version = "0.1.0"
+description = "Выбор типов графиков и генерация данных"
+authors = ["nikita.veretinprogr@gmailc.com"]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+requests = "^2.31"
+flask = "^3.1"
+flask-cors = "^3.0"
+python-dotenv = "^1.1.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

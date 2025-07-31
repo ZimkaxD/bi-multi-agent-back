@@ -46,5 +46,22 @@ class ChartTypeAgent:
         response = requests.post(os.environ.get("YANDEX_GPT_URL"), headers=headers, json=payload)
         response.raise_for_status()
         data = response.json()["result"]["alternatives"][0]["message"]["text"].strip()
-        clean_data=clean_str(data)
-        return json.loads(clean_data)
+        clean_data = clean_str(data)
+        start = clean_data.find("[")
+        if start == -1:
+            return []
+        depth = 0
+        for i, ch in enumerate(clean_data[start:], start):
+            if ch == "[":
+                depth += 1
+            elif ch == "]":
+                depth -= 1
+                if depth == 0:
+                    json_text = clean_data[start: i + 1]
+                    break
+        else:
+            return []
+        try:
+            return json.loads(json_text)
+        except json.JSONDecodeError as e:
+            return []

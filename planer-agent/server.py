@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 from dotenv import load_dotenv
-import os, requests, traceback
+import os, requests
 
 load_dotenv()
 
@@ -19,10 +19,11 @@ def classify_goal(user_prompt: str, temperature=0.3, max_tokens=1500) -> str:
         {
             "role": "system",
             "text": (
-                "Выбери одну метку: ['sql','chart','both','other']"
-                "Если пользователь просит что-то найти или т.п. - это значит метка - 'sql'. "
-                "Если пользователь просит что-то связанное с диаграммой, гистограммой или графиком - это метка 'chart'. "
-                "Если пользователь просит и найти информацию, и визуализировать её — метка 'both'. "
+                "Выбери одну метку: ['search','chart','both','insert','other']"
+                "Если пользователь просит что-то найти или т.п. - это значит метка - search. "
+                "Если пользователь просит что-то связанное с диаграммой, гистограммой или графиком - это метка - chart. "
+                "Если пользователь просит и найти информацию, и визуализировать её — метка - both. "
+                "Если пользователь просит что-либо добавить — метка - insert. "
                 "Не добавляй никаких комментариев — только метка."
             )
         },
@@ -66,16 +67,17 @@ def plan():
     try:
         goal = classify_goal(user_prompt)
 
-        if goal == "sql":
+        if goal in ["search","insert"]:
             try:
                 r = requests.post(f"{SQL_AGENT}/generate_execute", json={"schema": schema, "user_prompt": user_prompt})
                 r.raise_for_status()
                 sql_response = r.json()
                 return jsonify({
                     "goal": goal,
-                    "sql": sql_response["sql"],
-                    "results": sql_response["results"]
-                })
+                    "sql": sql_response.get("sql"),
+                    "results": sql_response.get("results", []),
+                    **({"inserted": True} if goal == "insert" and "error" not in sql_response else {})
+                }), 200
             except Exception as e:
                 import traceback
                 return jsonify({
@@ -105,7 +107,7 @@ def plan():
                     "results": results
                 })
                 r2.raise_for_status()
-                types = r2.json()["charts_type"]
+                types = r2.json().get("charts_type", [])
             except Exception as e:
                 import traceback
                 return jsonify({
@@ -122,7 +124,7 @@ def plan():
                         "chart_type": chart_type
                     })
                     r3.raise_for_status()
-                    charts_data[chart_type] = r3.json()["charts_data"]
+                    charts_data[chart_type] = r3.json().get("chart_data",[])
                 except Exception as e:
                     import traceback
                     return jsonify({
@@ -140,11 +142,14 @@ def plan():
 
         return jsonify({"goal": goal, "error": "Не удалось понять цель запроса"})
 
+
     except Exception as e:
-        import traceback
         return jsonify({
+
             "error": "Ошибка планировщика",
-            "details": traceback.format_exc()
+
+            "details": str(e)
+
         }), 500
 
 

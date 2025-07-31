@@ -18,7 +18,7 @@ def suggest_types():
 def gen_data():
     body = request.get_json()
     data = data_agent.generate_chart_data(body["user_prompt"], body["results"], body["chart_type"])
-    return jsonify({"charts_data": data})
+    return jsonify({"chart_data": data})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5002)

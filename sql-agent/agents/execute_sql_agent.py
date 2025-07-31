@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class ExecuteSQLAgent:
+    FORBIDDEN = ["drop ", "delete ", "alter", "truncate"]
     def __init__(self, connection_string: str = os.environ.get("DB_CONNECTION")):
         self.connection = psycopg2.connect(connection_string)
         self.connection.autocommit = False
@@ -19,6 +20,13 @@ class ExecuteSQLAgent:
 
 
     def safe_execute(self, sql: str)->dict:
+        lower = sql.strip().lower()
+        for query in self.FORBIDDEN:
+            if lower.startswith(query) or f"; {query}" in lower or query in lower:
+                return {
+                    "success": False,
+                    "error": f"Запрос содержит запрещённую операцию ({query.strip()})"
+                }
         try:
             data = self.execute_sql(sql)
             return {"success": True, "data":  data}

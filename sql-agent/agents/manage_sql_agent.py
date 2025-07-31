@@ -1,4 +1,4 @@
-import requests, os
+import requests, os, re
 from agents.generate_sql_agent import GenerateSQLAgent
 from agents.execute_sql_agent import ExecuteSQLAgent
 from utils.str_cleaner import clean_str
@@ -63,6 +63,10 @@ class ManageSQLAgent:
                 return {"sql": clean_sql, "results": result.get("data")}
 
             error_message=result.get("error", "Неизвестная ошибка")
+
+            if "missing FROM-clause entry for table" in error_message:
+                clean_sql = re.sub(r'\bprojects\.(\w+)', r'\1', clean_sql)
+                continue
 
             fixed_sql=self.ask_llm_to_fix_sql(clean_sql,error_message,schema)
             clean_sql=clean_str(fixed_sql)

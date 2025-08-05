@@ -1,3 +1,4 @@
+import psycopg2, psycopg2.extras
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os, requests, traceback
@@ -6,31 +7,34 @@ from dotenv import load_dotenv
 load_dotenv()
 PLANNER_URL = os.getenv("PLANNER_ROUTER_URL")
 
+DB_CONNECTION= os.getenv("DB_CONNECTION")
+
 app = Flask(__name__)
 CORS(app)
 
 
 @app.route("/agent", methods=["POST"])
-def route_request():
+def route_agent_request():
     try:
         body = request.get_json() or {}
         prompt = body.get("user_prompt", "").strip()
         schema ='''
-    Таблица clients(client_id, name, industry, contact_name, contact_email, contact_phone, created_at)
-    Таблица analysts(analyst_id, first_name, last_name, email, phone, hire_date)
-    Таблица projects(project_id, client_id, name, start_date, end_date, status, budget)
-    projects.client_id = clients.client_id
-    Таблица project_analysts(project_id, analyst_id, assigned_on, role)
-    project_analysts.project_id = projects.project_id  
-    project_analysts.analyst_id = analysts.analyst_id
-    Таблица reports(report_id, project_id, title, created_by, created_at, file_path)
-    reports.project_id = projects.project_id  
-    reports.created_by = analysts.analyst_id 
-    Таблица invoices(invoice_id, project_id, issue_date, due_date, amount, paid, paid_date)
-    invoices.project_id = projects.project_id
-    Таблица project_status_history(history_id, project_id, old_status, new_status, changed_by, changed_at)
-    project_status_history.project_id = projects.project_id  
-    project_status_history.changed_by = analysts.analyst_id
+    Таблица users(user_id, username, email, created_at)
+
+    Таблица wallets(wallet_id, user_id, currency, balance)
+    wallets.user_id = users.user_id
+    
+    Таблица markets(market_id, base_currency, quote_currency)
+    
+    Таблица orders(order_id, user_id, market_id, side, price, amount, status, created_at)
+    orders.user_id = users.user_id  
+    orders.market_id = markets.market_id
+    
+    Таблица trades(trade_id, market_id, buy_order_id, sell_order_id, price, amount, traded_at)
+    trades.market_id = markets.market_id  
+    trades.buy_order_id = orders.order_id  
+    trades.sell_order_id = orders.order_id
+
 '''
 
         if not prompt:
@@ -51,6 +55,39 @@ def route_request():
             "error": "Internal Server Error",
             "details": traceback.format_exc()
         }), 500
+
+
+@app.route("/dbinfo", methods=["GET"])
+def dbinfo():
+    try:
+        conn = psycopg2.connect(DB_CONNECTION)
+        cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+        cur.execute("""
+            SELECT table_name, column_name, data_type
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+            ORDER BY table_name, ordinal_position
+        """)
+        tables = {}
+        for row in cur.fetchall():
+            tname, cname, dtype = row["table_name"], row["column_name"], row["data_type"]
+            tables.setdefault(tname, []).append({"name": cname, "type": dtype})
+
+        schema = {"tables": [{"name": t, "columns": cols} for t, cols in tables.items()]}
+
+        data = {}
+        for t in tables.keys():
+            cur.execute(f"SELECT * FROM {t} LIMIT 10")
+            data[t] = [dict(r) for r in cur.fetchall()]
+
+        cur.close()
+        conn.close()
+
+        return jsonify({"schema": schema, "data": data}), 200
+
+    except Exception as e:
+        return jsonify({"error": "Не удалось получить информацию о БД", "details": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)

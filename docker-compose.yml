@@ -10,34 +10,55 @@ services:
       - ./initdb:/docker-entrypoint-initdb.d
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   planer-agent:
     build: ./planer-agent
     container_name: bi_planer_agent
     env_file: .env
-    depends_on: [db]
-    ports: ["5003:5003"]
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "5003:5003"
 
   sql-agent:
     build: ./sql-agent
     container_name: bi_sql_agent
     env_file: .env
-    depends_on: [db, planer-agent]
-    ports: ["5001:5001"]
+    depends_on:
+      db:
+        condition: service_healthy
+      planer-agent:
+        condition: service_started
+    ports:
+      - "5001:5001"
 
   chart-agent:
     build: ./chart-agent
     container_name: bi_chart_agent
     env_file: .env
-    depends_on: [planer-agent]
-    ports: ["5002:5002"]
+    depends_on:
+      planer-agent:
+        condition: service_started
+    ports:
+      - "5002:5002"
 
   gateway:
     build: ./gateway
     container_name: bi_gateway
     env_file: .env
-    depends_on: [sql-agent, chart-agent]
-    ports: ["5000:5000"]
+    depends_on:
+      sql-agent:
+        condition: service_started
+      chart-agent:
+        condition: service_started
+    ports:
+      - "5000:5000"
 
 volumes:
   pgdata:

@@ -80,8 +80,8 @@
    SQL_AGENT_URL=http://sql-agent:5001
    CHART_AGENT_URL=http://chart-agent:5002
    PLANNER_ROUTER_URL=http://planer-agent:5003
-   POSTGRES_USER=имя_пользователя
-   POSTGRES_PASSWORD=пароль_пользователя
+   POSTGRES_USER=agent
+   POSTGRES_PASSWORD=agent_pass
    POSTGRES_DB=имя_базы_данных
    DB_CONNECTION=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
    ```
